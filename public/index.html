@@ -13,13 +13,17 @@
 
 <body>
     <div class="app-container">
+
         <!-- Hamburger Button -->
         <button class="hamburger-btn" id="hamburgerBtn"><i class="fas fa-bars"></i></button>
 
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
+
             <div class="sidebar-header">
-                <img id="userProfilePic" src="img/default-profile.png" alt="Profile Picture" class="profile-pic">
+                <img id="userProfilePic"
+                    src="/https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/512x512/plain/user.png"
+                    alt="Profile Picture" class="profile-pic">
                 <span id="userDisplayName" class="user-name"></span>
             </div>
             <div class="sidebar-menu">
@@ -56,7 +60,7 @@
                                 <input type="password" id="loginPassword" placeholder="Password" required>
                             </div>
                             <div class="inputBx">
-                                <input type="submit" value="Login">
+                                <input type="submit" value="Login" id="loginSubmitBtn">
                             </div>
                             <div class="inputBx">
                                 <button type="button" class="google-btn" id="googleSignIn"><i class="fab fa-google"></i>
@@ -75,7 +79,10 @@
                                 <input type="password" id="registerPassword" placeholder="Password" required>
                             </div>
                             <div class="inputBx">
-                                <input type="submit" value="Register">
+                                <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+                            </div>
+                            <div class="inputBx">
+                                <input type="submit" value="Register" id="registerSubmitBtn">
                             </div>
                         </form>
                     </div>
@@ -115,8 +122,9 @@
                 <div class="chat-area" id="chatAreaSection" style="display: none;">
                     <div class="chat-header">
                         <button class="back-btn" id="backToChatsBtn"><i class="fas fa-arrow-left"></i></button>
-                        <img id="chatProfilePic" src="img/default-profile.png" alt="Friend Profile Picture"
-                            class="profile-pic">
+                        <img id="chatProfilePic"
+                            src="https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/512x512/plain/user.png"
+                            alt="Friend Profile Picture" class="profile-pic">
                         <h2 id="chatTitle"></h2>
                         <span id="typingIndicator" class="typing-indicator"></span>
                     </div>
@@ -139,7 +147,7 @@
         import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, onSnapshot, addDoc, orderBy, Timestamp, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
         import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
-        import { getDatabase, ref as dbRef, set, onValue, off } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+        import { getDatabase, ref as dbRef, set, onValue, off, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCl-GLnM_ZUOLRtCB61SG4TcZatESQvBIM",
@@ -150,27 +158,27 @@
             messagingSenderId: "998627379069",
             appId: "1:998627379069:web:e4a4d39952acae00dc2e14",
             measurementId: "G-T7MP8LQLJW"
-        }; 
+        };
 
         let firebaseInitialized = false;
         try {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
-            const storage = getStorage(app); // Use emulator for local dev: getStorage(app, "http://localhost:9199")
+            const storage = getStorage(app);
             const realtimeDb = getDatabase(app);
-            firebaseInitialized = true;
 
             window.firebase = {
                 auth, db, storage, realtimeDb, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,
                 createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, doc, setDoc, getDoc,
                 getDocs, collection, query, where, onSnapshot, addDoc, orderBy, Timestamp, updateDoc, deleteDoc,
-                ref, uploadBytes, getDownloadURL, dbRef, set, onValue, off
+                ref, uploadBytes, getDownloadURL, dbRef, set, onValue, off, onDisconnect
             };
+            firebaseInitialized = true;
             console.log('Firebase initialized successfully');
         } catch (error) {
-            console.error('Firebase initialization failed:', error);
-            showToast('Failed to initialize Firebase. Please check your configuration.');
+            console.error('Firebase initialization failed:', error.code, error.message);
+            showToast('Failed to initialize Firebase. Check console for details.');
         }
     </script>
 
@@ -185,13 +193,15 @@
             const { auth, db, storage, realtimeDb, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,
                 createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, doc, setDoc, getDoc,
                 getDocs, collection, query, where, onSnapshot, addDoc, orderBy, Timestamp, updateDoc, deleteDoc,
-                ref, uploadBytes, getDownloadURL, dbRef, set, onValue, off } = window.firebase;
+                ref, uploadBytes, getDownloadURL, dbRef, set, onValue, off, onDisconnect } = window.firebase;
 
             const authSection = document.getElementById('authSection');
             const appSection = document.getElementById('appSection');
             const chatAreaSection = document.getElementById('chatAreaSection');
             const sidebar = document.getElementById('sidebar');
             const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+            const registerSubmitBtn = document.getElementById('registerSubmitBtn');
             let selectedFriendId = null;
             let currentUser = null;
             let typingListener = null;
@@ -302,21 +312,53 @@
             toggleAuthForms();
             toggleAppSections();
 
+            // Input Validation
+            const validateEmail = (email) => {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            };
+
+            const validatePassword = (password) => {
+                return password.length >= 6;
+            };
+
             // Login
             document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const email = document.getElementById('loginEmail').value;
+                const email = document.getElementById('loginEmail').value.trim();
                 const password = document.getElementById('loginPassword').value;
-                if (!email || !password) {
-                    showToast('Please enter email and password.');
+                if (!validateEmail(email)) {
+                    showToast('Please enter a valid email.');
                     return;
                 }
+                if (!validatePassword(password)) {
+                    showToast('Password must be at least 6 characters.');
+                    return;
+                }
+                loginSubmitBtn.disabled = true;
                 try {
                     await signInWithEmailAndPassword(auth, email, password);
                     showToast('Logged in successfully!', 'success');
                 } catch (error) {
-                    console.error('Login error:', error);
-                    showToast(`Login failed: ${error.message}`);
+                    console.error('Login error:', error.code, error.message);
+                    switch (error.code) {
+                        case 'auth/user-not-found':
+                            showToast('No account found with this email. Please register.');
+                            break;
+                        case 'auth/wrong-password':
+                            showToast('Incorrect password. Please try again.');
+                            break;
+                        case 'auth/invalid-email':
+                            showToast('Invalid email format.');
+                            break;
+                        case 'auth/too-many-requests':
+                            showToast('Too many attempts. Please try again later.');
+                            break;
+                        default:
+                            showToast(`Login failed: ${error.message}`);
+                    }
+                } finally {
+                    loginSubmitBtn.disabled = false;
                 }
             });
 
@@ -338,8 +380,17 @@
                     }
                     showToast('Signed in with Google!', 'success');
                 } catch (error) {
-                    console.error('Google Sign-In error:', error);
-                    showToast(`Google sign-in failed: ${error.message}`);
+                    console.error('Google Sign-In error:', error.code, error.message);
+                    switch (error.code) {
+                        case 'auth/popup-closed-by-user':
+                            showToast('Google sign-in cancelled.');
+                            break;
+                        case 'auth/network-request-failed':
+                            showToast('Network error. Please check your connection.');
+                            break;
+                        default:
+                            showToast(`Google sign-in failed: ${error.message}`);
+                    }
                 }
             });
 
@@ -347,12 +398,18 @@
             document.getElementById('registerForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const username = document.getElementById('registerUsername').value.trim();
-                const email = document.getElementById('registerEmail').value;
+                const email = document.getElementById('registerEmail').value.trim();
                 const password = document.getElementById('registerPassword').value;
-                if (!username || !email || !password) {
-                    showToast('Please fill all fields.');
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                if (!username || !validateEmail(email) || !validatePassword(password)) {
+                    showToast('Please fill all fields correctly. Password must be at least 6 characters.');
                     return;
                 }
+                if (password !== confirmPassword) {
+                    showToast('Passwords do not match.');
+                    return;
+                }
+                registerSubmitBtn.disabled = true;
                 try {
                     const usersRef = collection(db, 'users');
                     const q = query(usersRef, where('username', '==', username));
@@ -369,8 +426,22 @@
                     });
                     showToast('Registered successfully!', 'success');
                 } catch (error) {
-                    console.error('Registration error:', error);
-                    showToast(`Registration failed: ${error.message}`);
+                    console.error('Registration error:', error.code, error.message);
+                    switch (error.code) {
+                        case 'auth/email-already-in-use':
+                            showToast('Email already registered. Please log in.');
+                            break;
+                        case 'auth/invalid-email':
+                            showToast('Invalid email format.');
+                            break;
+                        case 'auth/weak-password':
+                            showToast('Password is too weak. Must be at least 6 characters.');
+                            break;
+                        default:
+                            showToast(`Registration failed: ${error.message}`);
+                    }
+                } finally {
+                    registerSubmitBtn.disabled = false;
                 }
             });
 
@@ -395,8 +466,9 @@
                     userCache.set(currentUser.uid, newUsername);
                     showToast('Username updated!', 'success');
                     document.getElementById('updateUsername').value = '';
+                    document.getElementById('userDisplayName').textContent = newUsername;
                 } catch (error) {
-                    console.error('Update username error:', error);
+                    console.error('Update username error:', error.code, error.message);
                     showToast(`Failed to update username: ${error.message}`);
                 }
             });
@@ -418,13 +490,19 @@
                     showToast('Profile picture updated!', 'success');
                     fileInput.value = '';
                 } catch (error) {
-                    console.error('Upload profile picture error:', error);
-                    if (error.code === 'storage/unauthorized') {
-                        showToast('Unauthorized: Check Firebase Storage rules.');
-                    } else if (error.message.includes('CORS')) {
-                        showToast('CORS error: Use Firebase Emulator or configure Storage CORS for localhost.');
-                    } else {
-                        showToast(`Failed to upload profile picture: ${error.message}`);
+                    console.error('Upload profile picture error:', error.code, error.message);
+                    switch (error.code) {
+                        case 'storage/unauthorized':
+                            showToast('Unauthorized: Check Firebase Storage rules.');
+                            break;
+                        case 'storage/quota-exceeded':
+                            showToast('Storage quota exceeded. Check your Firebase plan.');
+                            break;
+                        case 'storage/canceled':
+                            showToast('Upload cancelled.');
+                            break;
+                        default:
+                            showToast(`Failed to upload profile picture: ${error.message}`);
                     }
                 }
             });
@@ -432,11 +510,17 @@
             // Logout
             document.getElementById('logoutBtn').addEventListener('click', async () => {
                 try {
+                    const statusRef = dbRef(realtimeDb, `status/${currentUser.uid}`);
+                    await set(statusRef, { online: false, lastOnline: Timestamp.now().toMillis() });
                     await signOut(auth);
                     showToast('Logged out successfully!', 'success');
                     userCache.clear();
+                    // Show auth section after logout
+                    authSection.style.display = 'flex';
+                    appSection.style.display = 'none';
+                    chatAreaSection.style.display = 'none';
                 } catch (error) {
-                    console.error('Logout error:', error);
+                    console.error('Logout error:', error.code, error.message);
                     showToast(`Logout failed: ${error.message}`);
                 }
             });
@@ -463,6 +547,11 @@
                         return;
                     }
                     const requestRef = doc(db, 'users', friendId, 'requests', currentUser.uid);
+                    const requestSnap = await getDoc(requestRef);
+                    if (requestSnap.exists()) {
+                        showToast('Friend request already sent.');
+                        return;
+                    }
                     await setDoc(requestRef, {
                         fromId: currentUser.uid,
                         fromUsername: currentUser.displayName,
@@ -472,7 +561,7 @@
                     document.getElementById('friendUsername').value = '';
                     showToast('Friend request sent!', 'success');
                 } catch (error) {
-                    console.error('Send request error:', error);
+                    console.error('Send request error:', error.code, error.message);
                     showToast(`Failed to send request: ${error.message}`);
                 }
             });
@@ -496,16 +585,17 @@
                 }
                 try {
                     const chatId = [currentUser.uid, selectedFriendId].sort().join('_');
-                    await addDoc(collection(db, 'chats', chatId, 'messages'), {
+                    const messageRef = await addDoc(collection(db, 'chats', chatId, 'messages'), {
                         senderId: currentUser.uid,
                         message,
                         timestamp: Timestamp.now(),
                         read: false
                     });
+                    console.log('Message sent with ID:', messageRef.id);
                     document.getElementById('messageInput').value = '';
                     showToast('Message sent!', 'success');
                 } catch (error) {
-                    console.error('Send message error:', error);
+                    console.error('Send message error:', error.code, error.message);
                     showToast(`Failed to send message: ${error.message}`);
                 } finally {
                     isSending = false;
@@ -519,16 +609,27 @@
             const debounceTyping = (func, wait) => {
                 let timeout;
                 return (...args) => {
+                    console.log('Typing event triggered');
                     clearTimeout(timeout);
                     timeout = setTimeout(() => func(...args), wait);
                 };
             };
             document.getElementById('messageInput').addEventListener('input', debounceTyping(() => {
-                if (!currentUser || !selectedFriendId) return;
+                if (!currentUser || !selectedFriendId) {
+                    console.log('Typing skipped: No user or friend selected');
+                    return;
+                }
                 const chatId = [currentUser.uid, selectedFriendId].sort().join('_');
                 const typingRef = dbRef(realtimeDb, `typing/${chatId}/${currentUser.uid}`);
-                set(typingRef, { typing: true });
-                setTimeout(() => set(typingRef, { typing: false }), 2000);
+                console.log('Setting typing status at:', typingRef.toString());
+                set(typingRef, { typing: true })
+                    .then(() => console.log('Typing status set to true'))
+                    .catch(error => console.error('Error setting typing status:', error.code, error.message));
+                setTimeout(() => {
+                    set(typingRef, { typing: false })
+                        .then(() => console.log('Typing status set to false'))
+                        .catch(error => console.error('Error clearing typing status:', error.code, error.message));
+                }, 2000);
             }, 500));
 
             // Load Received Requests
@@ -536,6 +637,7 @@
                 const receivedList = document.getElementById('receivedRequestsList');
                 const requestsRef = collection(db, 'users', userId, 'requests');
                 return onSnapshot(requestsRef, (snapshot) => {
+                    console.log('Received requests snapshot:', snapshot.size, 'docs');
                     receivedList.innerHTML = '';
                     snapshot.forEach(docSnap => {
                         const request = docSnap.data();
@@ -554,7 +656,7 @@
                                     await setDoc(friendRefOther, { username: currentUser.displayName, profilePic: currentUser.profilePic || '', addedAt: Timestamp.now() });
                                     showToast('Request accepted!', 'success');
                                 } catch (error) {
-                                    console.error('Accept request error:', error);
+                                    console.error('Accept request error:', error.code, error.message);
                                     showToast(`Failed to accept request: ${error.message}`);
                                 }
                             });
@@ -562,6 +664,9 @@
                             receivedList.appendChild(li);
                         }
                     });
+                }, (error) => {
+                    console.error('Error loading received requests:', error.code, error.message);
+                    showToast(`Failed to load friend requests: ${error.message}`);
                 });
             };
 
@@ -570,6 +675,7 @@
                 const sentList = document.getElementById('sentRequestsList');
                 const usersRef = collection(db, 'users');
                 return onSnapshot(usersRef, (snapshot) => {
+                    console.log('Users snapshot for sent requests:', snapshot.size, 'docs');
                     sentList.innerHTML = '';
                     snapshot.forEach(userDoc => {
                         const requestsRef = collection(db, 'users', userDoc.id, 'requests');
@@ -582,154 +688,226 @@
                                     sentList.appendChild(li);
                                 }
                             });
+                        }, (error) => {
+                            console.error('Error loading sent requests:', error.code, error.message);
+                            showToast(`Failed to load sent requests: ${error.message}`);
                         });
                     });
+                }, (error) => {
+                    console.error('Error loading users for sent requests:', error.code, error.message);
+                    showToast(`Failed to load sent requests: ${error.message}`);
                 });
             };
 
-            // Load Friends
+            // Load Friends with Online Status
             const loadFriends = (userId) => {
                 const friendsList = document.getElementById('friendsList');
                 const friendsRef = collection(db, 'users', userId, 'friends');
                 return onSnapshot(friendsRef, (snapshot) => {
+                    console.log('Friends snapshot:', snapshot.size, 'docs');
                     friendsList.innerHTML = '';
                     snapshot.forEach(docSnap => {
                         const friend = docSnap.data();
+                        const friendId = docSnap.id;
                         const li = document.createElement('li');
                         const img = document.createElement('img');
-                        img.src = friend.profilePic || 'img/default-profile.png';
+                        img.src = friend.profilePic || 'https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/512x512/plain/user.png';
                         img.classList.add('profile-pic-small');
                         li.appendChild(img);
+                        const statusSpan = document.createElement('span');
+                        statusSpan.classList.add('online-status');
+                        li.appendChild(statusSpan);
                         li.appendChild(document.createTextNode(friend.username));
                         li.style.cursor = 'pointer';
                         li.addEventListener('click', () => {
-                            selectedFriendId = docSnap.id;
+                            selectedFriendId = friendId;
                             document.getElementById('chatTitle').textContent = friend.username;
-                            document.getElementById('chatProfilePic').src = friend.profilePic || 'img/default-profile.png';
+                            document.getElementById('chatProfilePic').src = friend.profilePic || 'https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/512x512/plain/user.png';
                             chatAreaSection.style.display = 'flex';
                             appSection.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
                             document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
                             document.querySelector('.sidebar-btn[data-section="chats"]').classList.add('active');
-                            loadMessages(userId, docSnap.id);
+                            loadMessages(userId, friendId);
                             if (window.innerWidth <= 768) {
                                 sidebar.classList.add('collapsed');
                             }
                         });
                         const deleteBtn = document.createElement('button');
                         deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-                        deleteBtn.classList.add('google-btn', 'small');
+                        deleteBtn.classList.add('deleteButton', 'small');
                         deleteBtn.addEventListener('click', async (e) => {
                             e.stopPropagation();
                             if (confirm(`Remove ${friend.username} from friends?`)) {
                                 try {
-                                    await deleteDoc(doc(db, 'users', userId, 'friends', docSnap.id));
-                                    await deleteDoc(doc(db, 'users', docSnap.id, 'friends', userId));
+                                    await deleteDoc(doc(db, 'users', userId, 'friends', friendId));
+                                    await deleteDoc(doc(db, 'users', friendId, 'friends', userId));
                                     showToast('Friend removed!', 'success');
                                 } catch (error) {
-                                    console.error('Remove friend error:', error);
+                                    console.error('Remove friend error:', error.code, error.message);
                                     showToast(`Failed to remove friend: ${error.message}`);
                                 }
                             }
                         });
                         li.appendChild(deleteBtn);
                         friendsList.appendChild(li);
+
+                        // Listen for online status
+                        const statusRef = dbRef(realtimeDb, `status/${friendId}`);
+                        onValue(statusRef, (snap) => {
+                            const status = snap.val();
+                            statusSpan.className = `online-status ${status?.online ? 'online' : 'offline'}`;
+                            statusSpan.title = status?.online ? 'Online' : `Last online: ${status?.lastOnline ? new Date(status.lastOnline).toLocaleString() : 'Unknown'}`;
+                        }, (error) => {
+                            console.error('Error loading friend status:', friendId, error.code, error.message);
+                        });
                     });
+                }, (error) => {
+                    console.error('Error loading friends:', error.code, error.message);
+                    showToast(`Failed to load friends: ${error.message}`);
                 });
             };
 
-            // Load Chats
+            // Load Chats with Online Status
             const loadChats = (userId) => {
                 const chatsList = document.getElementById('chatsList');
                 const friendsRef = collection(db, 'users', userId, 'friends');
                 return onSnapshot(friendsRef, (snapshot) => {
+                    console.log('Chats snapshot:', snapshot.size, 'docs');
                     chatsList.innerHTML = '';
                     snapshot.forEach(async (docSnap) => {
                         const friend = docSnap.data();
-                        const chatId = [userId, docSnap.id].sort().join('_');
+                        const friendId = docSnap.id;
+                        const chatId = [userId, friendId].sort().join('_');
                         const messagesRef = collection(db, 'chats', chatId, 'messages');
                         const q = query(messagesRef, orderBy('timestamp', 'desc'));
-                        const messageSnap = await getDocs(q);
-                        const lastMessage = messageSnap.docs[0]?.data();
-                        const li = document.createElement('li');
-                        const img = document.createElement('img');
-                        img.src = friend.profilePic || 'img/default-profile.png';
-                        img.classList.add('profile-pic-small');
-                        li.appendChild(img);
-                        const textDiv = document.createElement('div');
-                        textDiv.classList.add('chat-preview');
-                        textDiv.innerHTML = `
-                            <strong>${friend.username}</strong>
-                            <p>${lastMessage ? lastMessage.message.substring(0, 30) + (lastMessage.message.length > 30 ? '...' : '') : 'No messages yet'}</p>
-                            <span class="chat-time">${lastMessage ? new Date(lastMessage.timestamp.toDate()).toLocaleTimeString() : ''}</span>
-                        `;
-                        li.appendChild(textDiv);
-                        li.style.cursor = 'pointer';
-                        li.addEventListener('click', () => {
-                            selectedFriendId = docSnap.id;
-                            document.getElementById('chatTitle').textContent = friend.username;
-                            document.getElementById('chatProfilePic').src = friend.profilePic || 'img/default-profile.png';
-                            chatAreaSection.style.display = 'flex';
-                            appSection.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                            document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
-                            document.querySelector('.sidebar-btn[data-section="chats"]').classList.add('active');
-                            loadMessages(userId, docSnap.id);
-                            if (window.innerWidth <= 768) {
-                                sidebar.classList.add('collapsed');
-                            }
-                        });
-                        chatsList.appendChild(li);
+                        try {
+                            const messageSnap = await getDocs(q);
+                            const lastMessage = messageSnap.docs[0]?.data();
+                            const li = document.createElement('li');
+                            const img = document.createElement('img');
+                            img.src = friend.profilePic || 'https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/512x512/plain/user.png';
+                            img.classList.add('profile-pic-small');
+                            li.appendChild(img);
+                            const statusSpan = document.createElement('span');
+                            statusSpan.classList.add('online-status');
+                            li.appendChild(statusSpan);
+                            const textDiv = document.createElement('div');
+                            textDiv.classList.add('chat-preview');
+                            textDiv.innerHTML = `
+                                <strong>${friend.username}</strong>
+                                <p>${lastMessage ? lastMessage.message.substring(0, 30) + (lastMessage.message.length > 30 ? '...' : '') : 'No messages yet'}</p>
+                                <span class="chat-time">${lastMessage ? new Date(lastMessage.timestamp.toDate()).toLocaleTimeString() : ''}</span>
+                            `;
+                            li.appendChild(textDiv);
+                            li.style.cursor = 'pointer';
+                            li.addEventListener('click', () => {
+                                selectedFriendId = friendId;
+                                document.getElementById('chatTitle').textContent = friend.username;
+                                document.getElementById('chatProfilePic').src = friend.profilePic || 'https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/512x512/plain/user.png';
+                                chatAreaSection.style.display = 'flex';
+                                appSection.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                                document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+                                document.querySelector('.sidebar-btn[data-section="chats"]').classList.add('active');
+                                loadMessages(userId, friendId);
+                                if (window.innerWidth <= 768) {
+                                    sidebar.classList.add('collapsed');
+                                }
+                            });
+                            chatsList.appendChild(li);
+
+                            // Listen for online status
+                            const statusRef = dbRef(realtimeDb, `status/${friendId}`);
+                            onValue(statusRef, (snap) => {
+                                const status = snap.val();
+                                statusSpan.className = `online-status ${status?.online ? 'online' : 'offline'}`;
+                                statusSpan.title = status?.online ? 'Online' : `Last online: ${status?.lastOnline ? new Date(status.lastOnline).toLocaleString() : 'Unknown'}`;
+                            }, (error) => {
+                                console.error('Error loading friend status:', friendId, error.code, error.message);
+                            });
+                        } catch (error) {
+                            console.error('Error loading chat messages for', friend.username, ':', error.code, error.message);
+                            showToast(`Failed to load chat for ${friend.username}: ${error.message}`);
+                        }
                     });
+                }, (error) => {
+                    console.error('Error loading chats:', error.code, error.message);
+                    showToast(`Failed to load chats: ${error.message}`);
                 });
             };
 
-            // Load Messages
+            // Load Messages with Read Status
             const loadMessages = (userId, friendId) => {
                 const chatMessages = document.getElementById('chatMessages');
                 const chatId = [userId, friendId].sort().join('_');
                 const messagesRef = collection(db, 'chats', chatId, 'messages');
                 const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
+                // Очистить предыдущий слушатель
                 if (messageListener) {
                     messageListener();
                     messageListener = null;
                 }
 
-                let lastMessageId = null;
-                messageListener = onSnapshot(q, (snapshot) => {
-                    snapshot.docChanges().forEach(async (change) => {
-                        if (change.type === 'added') {
-                            const message = change.doc.data();
-                            const messageId = change.doc.id;
-                            if (messageId === lastMessageId) return;
-                            lastMessageId = messageId;
+                chatMessages.innerHTML = ''; // Очищаем чат
 
-                            let senderUsername = userCache.get(message.senderId);
-                            if (!senderUsername) {
+                messageListener = onSnapshot(q, (snapshot) => {
+                    console.log('Messages snapshot:', snapshot.size, 'docs');
+
+                    // Полностью перерисовываем сообщения в правильном порядке
+                    chatMessages.innerHTML = '';
+                    userCache.clear(); // Опционально: можно кэшировать, но для простоты
+
+                    const messagePromises = snapshot.docs.map(async (docSnap) => {
+                        const message = docSnap.data();
+                        const messageId = docSnap.id;
+
+                        let senderUsername = userCache.get(message.senderId);
+                        if (!senderUsername) {
+                            try {
                                 const senderRef = doc(db, 'users', message.senderId);
                                 const senderSnap = await getDoc(senderRef);
                                 senderUsername = senderSnap.exists() ? senderSnap.data().username : 'Unknown';
                                 userCache.set(message.senderId, senderUsername);
-                            }
-
-                            const messageDiv = document.createElement('div');
-                            messageDiv.classList.add('message', message.senderId === userId ? 'sent' : 'received');
-                            messageDiv.dataset.messageId = messageId;
-                            messageDiv.innerHTML = `
-                                <div class="message-content">
-                                    <span class="message-text">${message.message}</span>
-                                    <span class="message-time">${new Date(message.timestamp.toDate()).toLocaleTimeString()}</span>
-                                    ${message.senderId === userId ? `<span class="read-status">${message.read ? '<i class="fas fa-check-double"></i>' : '<i class="fas fa-check"></i>'}</span>` : ''}
-                                </div>`;
-                            chatMessages.appendChild(messageDiv);
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
-
-                            if (message.senderId !== userId && !message.read) {
-                                await updateDoc(doc(db, 'chats', chatId, 'messages', messageId), { read: true });
+                            } catch (error) {
+                                console.error('Error fetching sender:', error);
+                                senderUsername = 'Unknown';
                             }
                         }
+
+                        const messageDiv = document.createElement('div');
+                        messageDiv.classList.add('message', message.senderId === userId ? 'sent' : 'received');
+                        messageDiv.dataset.messageId = messageId;
+                        messageDiv.innerHTML = `
+                <div class="message-content">
+                    <span class="message-text">${message.message}</span>
+                    <span class="message-time">${new Date(message.timestamp.toDate()).toLocaleTimeString()}</span>
+                    ${message.senderId === userId ? `<span class="read-status">${message.read ? '✓✓' : '✓'}</span>` : ''}
+                </div>
+            `;
+
+                        // Помечаем как прочитанное, если это не наше сообщение
+                        if (message.senderId !== userId && !message.read) {
+                            updateDoc(doc(db, 'chats', chatId, 'messages', messageId), { read: true }).catch(console.error);
+                        }
+
+                        return { element: messageDiv, timestamp: message.timestamp.toMillis() };
                     });
+
+                    // Дожидаемся всех имен пользователей и сортируем по времени
+                    Promise.all(messagePromises).then((messagesWithElements) => {
+                        messagesWithElements
+                            .sort((a, b) => a.timestamp - b.timestamp)
+                            .forEach(({ element }) => {
+                                chatMessages.appendChild(element);
+                            });
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    });
+                }, (error) => {
+                    console.error('Error loading messages:', error);
+                    showToast(`Failed to load messages: ${error.message}`);
                 });
 
+                // Typing indicator
                 if (typingListener) off(typingListener);
                 const typingRef = dbRef(realtimeDb, `typing/${chatId}/${friendId}`);
                 typingListener = onValue(typingRef, (snapshot) => {
@@ -743,33 +921,64 @@
                 };
             };
 
+
+            // Update Online Status
+            const updateOnlineStatus = (userId) => {
+                const statusRef = dbRef(realtimeDb, `status/${userId}`);
+                set(statusRef, { online: true, lastOnline: Timestamp.now().toMillis() })
+                    .then(() => console.log('Online status set to true for UID:', userId))
+                    .catch(error => console.error('Error setting online status:', error.code, error.message));
+                onDisconnect(statusRef).set({ online: false, lastOnline: Timestamp.now().toMillis() })
+                    .then(() => console.log('onDisconnect set for UID:', userId))
+                    .catch(error => console.error('Error setting onDisconnect:', error.code, error.message));
+            };
+
+            // Auth State Listener
             // Auth State Listener
             let unsubscribeFunctions = [];
             onAuthStateChanged(auth, async (user) => {
                 unsubscribeFunctions.forEach(fn => fn());
                 unsubscribeFunctions = [];
 
+                const appContainer = document.querySelector('.app-container');
+
                 if (user) {
                     currentUser = user;
+                    appContainer.classList.remove('auth-active'); // Remove auth-active class
                     authSection.style.display = 'none';
                     appSection.style.display = 'flex';
-                    const userRef = doc(db, 'users', user.uid);
-                    const userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        document.getElementById('userDisplayName').textContent = userSnap.data().username;
-                        document.getElementById('userProfilePic').src = userSnap.data().profilePic || 'img/default-profile.png';
-                        document.getElementById('updateUsername').value = userSnap.data().username;
-                        userCache.set(user.uid, userSnap.data().username);
+                    hamburgerBtn.style.display = 'block'; // Show hamburger button on mobile
+                    try {
+                        const userRef = doc(db, 'users', user.uid);
+                        const userSnap = await getDoc(userRef);
+                        if (userSnap.exists()) {
+                            document.getElementById('userDisplayName').textContent = userSnap.data().username;
+                            document.getElementById('userProfilePic').src = userSnap.data().profilePic || 'https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/512x512/plain/user.png';
+                            document.getElementById('updateUsername').value = userSnap.data().username;
+                            userCache.set(user.uid, userSnap.data().username);
+                            updateOnlineStatus(user.uid);
+                        } else {
+                            console.error('User document does not exist for UID:', user.uid);
+                            showToast('User data not found. Please re-register.');
+                            await signOut(auth);
+                            return;
+                        }
+                        unsubscribeFunctions.push(loadReceivedRequests(user.uid));
+                        unsubscribeFunctions.push(loadSentRequests(user.uid));
+                        unsubscribeFunctions.push(loadFriends(user.uid));
+                        unsubscribeFunctions.push(loadChats(user.uid));
+                    } catch (error) {
+                        console.error('Error loading user data:', error.code, error.message);
+                        showToast(`Failed to load user data: ${error.message}`);
+                        await signOut(auth);
                     }
-                    unsubscribeFunctions.push(loadReceivedRequests(user.uid));
-                    unsubscribeFunctions.push(loadSentRequests(user.uid));
-                    unsubscribeFunctions.push(loadFriends(user.uid));
-                    unsubscribeFunctions.push(loadChats(user.uid));
                 } else {
                     currentUser = null;
+                    appContainer.classList.add('auth-active'); // Add auth-active class
                     authSection.style.display = 'flex';
                     appSection.style.display = 'none';
                     chatAreaSection.style.display = 'none';
+                    hamburgerBtn.style.display = 'none'; // Hide hamburger button
                     document.getElementById('receivedRequestsList').innerHTML = '';
                     document.getElementById('sentRequestsList').innerHTML = '';
                     document.getElementById('friendsList').innerHTML = '';
