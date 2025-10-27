@@ -1,29 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#1885ed">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
     <link rel="stylesheet" href="css/stylelogin.css">
-
-    <title>Free Login HTML Page Temlate</title>
+    <title>PRIME-CHAT AUTH</title>
+    <link rel="icon" href="img/logo.ico" type="image/x-icon">
 </head>
 
 <body>
-
-
-  <i style="--clr:#ff00dd;"></i>
-  <i style="--clr:#7700ff;"></i>
-  <i style="--clr:#4470ff;"></i>
-  <div class="login">
-    <h2>Login</h2>
-    <div class="inputBx">
-      <input type="text" placeholder="+380 Phone number">
-    </div>
-   
-    <div class="inputBx">
-      <input type="submit" value="Enter">
-    </div>
+    <i style="--clr:#ff00dd;"></i>
+    <i style="--clr:#7700ff;"></i>
+    <i style="--clr:#4470ff;"></i>
     
-  </div>
+    <div class="form-container">
+        <div class="toggle-panel">
+            <button class="toggle-btn active" data-form="login">Login</button>
+            <button class="toggle-btn" data-form="register">Register</button>
+            <span class="slider"></span>
+        </div>
+        <div class="forms-wrapper">
+          
+            <!-- Login Form -->
+            <form class="form login-form active">
+                <h2>Login</h2>
+                <div class="inputBx">
+                    <input type="text" placeholder="Email">
+                </div>
+                <div class="inputBx">
+                    <input type="password" placeholder="Password">
+                </div>
+                <div class="inputBx">
+                    <input type="submit" value="Enter">
+                    
+                </div>
+                <div class="inputBx">
+                    <button type="button" class="google-btn">Sign in with Google</button>
+                </div>
+            </form>
+            
+            <!-- Register Form -->
+            <form class="form register-form">
+                <h2>Register</h2>
+                <div class="inputBx">
+                    <input type="text" placeholder="Username">
+                </div>
+                <div class="inputBx">
+                    <input type="email" placeholder="Email">
+                </div>
+                <div class="inputBx">
+                    <input type="password" placeholder="Password">
+                </div>
+                <div class="inputBx">
+                    <input type="submit" value="Enter">
+                </div>
+            </form>
+        </div>
+      
+    </div>
 
+    <script>
+        const toggleBtns = document.querySelectorAll('.toggle-btn');
+        const forms = document.querySelectorAll('.form');
+        const slider = document.querySelector('.slider');
 
-</body>            
+        toggleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetForm = btn.dataset.form;
+                
+                // Убираем active с кнопок и форм
+                toggleBtns.forEach(b => b.classList.remove('active'));
+                forms.forEach(f => f.classList.remove('active'));
+                
+                // Добавляем active к целевым
+                btn.classList.add('active');
+                document.querySelector(`.${targetForm}-form`).classList.add('active');
+                
+                // Анимация слайдера
+                const sliderWidth = btn.offsetWidth;
+                const offsetLeft = btn.offsetLeft;
+                slider.style.width = sliderWidth + 'px';
+                slider.style.left = offsetLeft + 'px';
+            });
+        });
+    </script>
+</body>
+</html>
