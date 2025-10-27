@@ -1,0 +1,38 @@
+{
+  "name": "prime-chat",
+  "version": "1.0.0",
+  "description": "Современный чат на Firebase с авторизацией, друзьями, онлайн-статусом и анимацией печати",
+  "main": "index.html",
+  "scripts": {
+    "start": "live-server --port=3000 --open=/ --watch=.",
+    "dev": "live-server --port=3000 --open=/",
+    "build": "echo 'No build step required — pure HTML/CSS/JS'"
+  },
+  "keywords": [
+    "chat",
+    "firebase",
+    "realtime",
+    "messenger",
+    "vanilla-js",
+    "responsive"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "browserslist": [
+    "last 2 versions",
+    "not dead",
+    "> 0.2%"
+  ],
+  "homepage": "https://github.com/yourusername/prime-chat",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/prime-chat.git"
+  }
+}
