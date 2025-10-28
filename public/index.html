@@ -93,13 +93,21 @@
             <div id="appSection" class="app-section" style="display: none;">
                 <div class="section account-section active">
                     <h2>Account Settings</h2>
+                    <div class="account-profile">
+                        <div class="account-avatar">
+                            <img id="accountProfilePic" src="https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/512x512/plain/user.png" alt="Profile Picture" class="profile-pic-large">
+                            <button class="avatar-edit-btn" id="openAvatarMenu" title="Change photo"><i class="fas fa-camera"></i></button>
+                        </div>
+                        <ul class="avatar-menu" id="avatarMenu" style="display:none;">
+                            <li data-action="view">View photo</li>
+                            <li data-action="upload">Upload new photo</li>
+                            <li data-action="remove">Remove photo</li>
+                        </ul>
+                        <input type="file" id="profilePicInput" accept="image/*" style="display:none">
+                    </div>
                     <div class="inputBx">
                         <input type="text" id="updateUsername" placeholder="New Username">
                         <button class="google-btn" id="updateUsernameBtn">Update Username</button>
-                    </div>
-                    <div class="inputBx">
-                        <input type="file" id="profilePicInput" accept="image/*">
-                        <button class="google-btn" id="uploadProfilePicBtn">Upload Profile Picture</button>
                     </div>
                 </div>
                 <div class="section friends-section">
@@ -140,6 +148,18 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
+
+    <!-- Photo Preview Modal -->
+    <div class="modal" id="photoModal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="closePhotoModal">&times;</span>
+            <img id="photoPreview" class="photo-preview" alt="Preview">
+            <div class="br" style="margin-top:12px; justify-content:center;">
+                <button class="google-btn" id="confirmUploadBtn">Save</button>
+                <button class="google-btn" id="cancelUploadBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase SDK -->
     <script type="module">

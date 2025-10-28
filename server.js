@@ -21,13 +21,19 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; connect-src 'self' ws://localhost:3000; style-src 'self' https://cdnjs.cloudflare.com; img-src 'self';"
+    "default-src 'self' https://www.gstatic.com https://www.googleapis.com https://apis.google.com https://accounts.google.com; " +
+    "connect-src 'self' ws://192.168.0.83:3000 https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; " +
+    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://accounts.google.com; " +
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+    "img-src 'self' data:; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "frame-src https://accounts.google.com;"
   );
   next();
 });
 
 // MongoDB Connection
-mongoose.connect('mongodb://localhost:27017/primechat', {
+mongoose.connect('mongodb://192.168.0.83:27017/primechat', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log('MongoDB connected'))
